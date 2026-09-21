@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手机网页录音测试</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; margin-top: 50px; }
+        button { font-size: 18px; padding: 10px 20px; margin: 10px; cursor: pointer; }
+        audio { display: block; margin: 20px auto; }
+    </style>
+</head>
+<body>
+
+    <h2>网页录音测试</h2>
+    <button id="recordBtn">开始录音</button>
+    <button id="stopBtn" disabled>停止录音</button>
+    <audio id="audioPlayback" controls></audio>
+    <a id="downloadLink" style="display:none;">点击下载录音文件</a>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+
+        const recordBtn = document.getElementById('recordBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const audioPlayback = document.getElementById('audioPlayback');
+        const downloadLink = document.getElementById('downloadLink');
+
+        // 点击“开始录音”
+        recordBtn.onclick = async () => {
+            try {
+                // 请求手机麦克风权限
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+
+                audioChunks = []; // 每次录音前清空数据
+
+                // 收集录音数据
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                // 录音结束后的处理
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/mp4' }); // iOS 兼容性较好的格式
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    
+                    // 设置试听
+                    audioPlayback.src = audioUrl;
+
+                    // 设置下载链接
+                    downloadLink.href = audioUrl;
+                    downloadLink.download = 'my-recording.mp4';
+                    downloadLink.style.display = 'block';
+                    downloadLink.innerText = '点击下载录音到手机';
+                };
+
+                mediaRecorder.start();
+                recordBtn.disabled = true;
+                stopBtn.disabled = false;
+            } catch (err) {
+                alert('无法访问麦克风，请确保已授予权限并且在 HTTPS 环境下打开！');
+                console.error(err);
+            }
+        };
+
+        // 点击“停止录音”
+        stopBtn.onclick = () => {
+            mediaRecorder.stop();
+            recordBtn.disabled = false;
+            stopBtn.disabled = true;
+        };
+    </script>
+
+</body>
+</html>
